@@ -1,0 +1,8 @@
+name = "oauth-server"
+compatibility_date = "2023-12-01"
+
+[vars]
+VAULT_ADDR=
+VAULT_NAMESPACE=
+VAULT_ROLE_ID=
+VAULT_SECRET_ID=
