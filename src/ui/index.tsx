@@ -20,7 +20,7 @@ function RootLayout({ children }: { children: any }) {
   );
 }
 
-async function ServerComp({ path, payload }: { path: string; payload: any }) {
+async function ServerComp({ path, data }: { path: string; data: any }) {
   // await sleep(1000);
   return (
     <>
@@ -31,7 +31,50 @@ async function ServerComp({ path, payload }: { path: string; payload: any }) {
       <div class="mb-4" />
 
       <div class="max-w-96 mx-auto">
-        <h1 class="mb-4 text-2xl">OAuth2</h1>
+        <h1 class="mb-4 text-2xl">OAuth2 Server</h1>
+
+        <aside class="mb-4 text-sm">
+          This is playground for implementing an OAuth server (as specified in{" "}
+          <a
+            class="underline text-blue-500"
+            href="https://www.rfc-editor.org/rfc/rfc6749.html"
+          >
+            RFC6749
+          </a>
+          ). This is incomplete and for demonstration purposes only!
+        </aside>
+
+        <aside class="mb-4 text-sm space-y-2">
+          <p>
+            The form below will create a signed RS256 JWT that is valid for 2
+            minutes.
+          </p>
+          <p>
+            The private key used for signing is stored in, and retrieved from
+            HCP Vault:{" "}
+            <a
+              class="underline text-blue-500"
+              href="https://vault.thekevinwang.com"
+            >
+              vault.thekevinwang.com
+            </a>
+            .
+          </p>
+          <p>
+            The public key is publicly available at{" "}
+            <a class="underline text-blue-500" href="/.well-known/jwks.json">
+              /.well-known/jwks.json
+            </a>
+            , in JSON Web Key (JWK) format, as specified in{" "}
+            <a
+              class="underline text-blue-500"
+              href="https://datatracker.ietf.org/doc/html/rfc7517"
+            >
+              RFC 7517
+            </a>
+            .
+          </p>
+        </aside>
 
         <form action="/oauth2/token" method="POST">
           <div class="space-y-4 flex flex-col">
@@ -59,9 +102,11 @@ async function ServerComp({ path, payload }: { path: string; payload: any }) {
         <div class="border-t mb-8 border-dashed"></div>
 
         <div>
-          Current token payload (from __token cookie)
+          <p class="text-sm">
+            Current token, decoded from the <code>__token</code> cookie.
+          </p>
           <pre class="rounded border">
-            <code class="text-sm">{JSON.stringify(payload, null, 2)}</code>
+            <code class="text-sm">{JSON.stringify(data, null, 2)}</code>
           </pre>
         </div>
       </div>
@@ -70,13 +115,13 @@ async function ServerComp({ path, payload }: { path: string; payload: any }) {
 }
 
 app.get("/", (c) => {
-  const token = getCookie(c, "__token");
-  const payload = token ? unsafeDecodeToken(token) : "";
+  const cookie = getCookie(c, "__token");
+  const token = cookie ? unsafeDecodeToken(cookie) : "";
 
   const stream = renderToReadableStream(
     <RootLayout>
       <Suspense fallback={<div>loading...</div>}>
-        <ServerComp path={c.req.routePath} payload={payload} />
+        <ServerComp path={c.req.routePath} data={token} />
       </Suspense>
     </RootLayout>
   );

@@ -108,6 +108,8 @@ export const generateJwk = async (c: Ctx) => {
 };
 
 export const unsafeDecodeToken = (token: string) => {
+  const protectedHeader = jose.decodeProtectedHeader(token);
   const payload = jose.decodeJwt(token);
-  return payload;
+
+  return { protectedHeader, payload };
 };
