@@ -2,8 +2,8 @@
   "name": "oauth-server",
   "scripts": {
     "dev": "wrangler dev src/index.ts --assets ./public",
-    "tw": "tailwindcss -i ./src/style.css -o ./public/style.css --watch",
-    "deploy": "tailwindcss -i ./src/style.css -o ./public/style.css --minify && wrangler deploy --minify src/index.ts --assets ./public"
+    "tw": "tailwindcss -i ./src/ui/style.css -o ./public/style.css --watch",
+    "deploy": "tailwindcss -i ./src/ui/style.css -o ./public/style.css --minify && wrangler deploy --minify src/index.ts --assets ./public"
   },
   "dependencies": {
     "date-fns": "^3.3.1",
