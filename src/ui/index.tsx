@@ -42,7 +42,10 @@ async function ServerComp({ path, data }: { path: string; data: any }) {
           >
             RFC6749
           </a>
-          ). This is incomplete and for demonstration purposes only!
+          ).{" "}
+          <span class="text-rose-800 bg-rose-200 rounded-lg px-2">
+            This is incomplete and for demonstration purposes only!
+          </span>
         </aside>
 
         <aside class="mb-4 text-sm space-y-2">
@@ -59,7 +62,11 @@ async function ServerComp({ path, data }: { path: string; data: any }) {
             >
               vault.thekevinwang.com
             </a>
-            .
+            .{" "}
+            <span class="text-amber-800 bg-amber-200 rounded-lg px-2">
+              As long as this Vault instance is live, this POC will{" "}
+              <i>just work</i>.
+            </span>
           </p>
           <p>
             The public key is publicly available at{" "}
