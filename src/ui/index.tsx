@@ -34,7 +34,8 @@ async function ServerComp({ path, data }: { path: string; data: any }) {
         <h1 class="mb-4 text-2xl">OAuth2 Server</h1>
 
         <aside class="mb-4 text-sm">
-          This is playground for implementing an OAuth server (as specified in{" "}
+          This is a proof of concept for implementing an OAuth server (as
+          specified in{" "}
           <a
             class="underline text-blue-500"
             href="https://www.rfc-editor.org/rfc/rfc6749.html"
@@ -65,14 +66,14 @@ async function ServerComp({ path, data }: { path: string; data: any }) {
             <a class="underline text-blue-500" href="/.well-known/jwks.json">
               /.well-known/jwks.json
             </a>
-            , in JSON Web Key (JWK) format, as specified in{" "}
+            , in JSON Web Key (JWK) format (as specified in{" "}
             <a
               class="underline text-blue-500"
               href="https://datatracker.ietf.org/doc/html/rfc7517"
             >
               RFC 7517
             </a>
-            .
+            ) .
           </p>
         </aside>
 
@@ -110,6 +111,18 @@ async function ServerComp({ path, data }: { path: string; data: any }) {
           </pre>
         </div>
       </div>
+
+      <footer class="border-t mt-8 flex flex-row items-center justify-end px-8 py-2">
+        <p class="text-xs">
+          Source code:&nbsp;
+          <a
+            class="underline text-blue-500"
+            href="https://github.com/thiskevinwang/oauth-server"
+          >
+            https://github.com/thiskevinwang/oauth-server
+          </a>
+        </p>
+      </footer>
     </>
   );
 }
