@@ -1,11 +1,10 @@
 import * as date from "date-fns";
 
-import type { Context } from "hono";
 import type { Env } from "@/types";
 
-type Ctx = Context<{ Bindings: Env }>;
+import { KeyValue } from "./internal";
 
-export class VaultKV {
+export class VaultKV implements KeyValue {
   addr: string;
   namespace: string;
   roleId: string;
@@ -14,38 +13,11 @@ export class VaultKV {
   lastLogin: Date | null = null;
   token: string | null = null;
 
-  /**
-   * create a client instance from hono context
-   */
-  static fromCtx(c: Ctx) {
-    const addr = c.env.VAULT_ADDR;
-    const namespace = c.env.VAULT_NAMESPACE;
-    const roleId = c.env.VAULT_ROLE_ID;
-    const secretId = c.env.VAULT_SECRET_ID;
-
-    return new VaultKV({
-      addr,
-      namespace,
-      roleId,
-      secretId,
-    });
-  }
-
-  constructor({
-    addr,
-    namespace,
-    roleId,
-    secretId,
-  }: {
-    addr: string;
-    namespace?: string;
-    roleId: string;
-    secretId: string;
-  }) {
-    this.addr = addr;
-    this.namespace = namespace || "admin";
-    this.roleId = roleId;
-    this.secretId = secretId;
+  constructor(env: Env) {
+    this.addr = env.VAULT_ADDR;
+    this.namespace = env.VAULT_NAMESPACE || "admin";
+    this.roleId = env.VAULT_ROLE_ID;
+    this.secretId = env.VAULT_SECRET_ID;
   }
 
   // Authenticate with Vault
@@ -88,14 +60,10 @@ export class VaultKV {
     this.lastLogin = new Date();
   }
 
-  async getSecret({
-    path = "tester",
-    // version = "1",
-  }: { version?: string; path?: string } = {}) {
+  async get(path = "tester") {
     const secretMountPath = "kv";
 
     const url = new URL(`/v1/${secretMountPath}/data/${path}`, this.addr);
-    // url.searchParams.set("version", version);
 
     const headers = new Headers();
     headers.set("X-Vault-Namespace", this.namespace);
@@ -114,9 +82,8 @@ export class VaultKV {
   }
 
   // util for creating/updating a secret
-  async #createOrUpdateSecret(obj: any) {
+  async put(path = "tester", obj: any) {
     const secretMountPath = "kv";
-    const path = "tester";
 
     const url = new URL(`/v1/${secretMountPath}/data/${path}`, this.addr);
     const headers = new Headers();

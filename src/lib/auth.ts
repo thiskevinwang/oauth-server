@@ -42,9 +42,9 @@ export const verifyToken: MiddlewareHandler = async (c: Ctx, next) => {
     });
   }
 
-  const vault = VaultKV.fromCtx(c);
+  const vault = new VaultKV(c.env);
   await vault.login();
-  const { publicKey: spki } = await vault.getSecret({ path: "tester" });
+  const { publicKey: spki } = await vault.get("tester");
   const publicKey = await jose.importSPKI(spki, alg, { extractable: true });
 
   try {
@@ -68,9 +68,9 @@ export const verifyToken: MiddlewareHandler = async (c: Ctx, next) => {
  * @see https://github.com/panva/jose/blob/main/docs/classes/jwt_sign.SignJWT.md
  */
 export const signToken = async (c: Ctx, { sub }: { sub: string }) => {
-  const vault = VaultKV.fromCtx(c);
+  const vault = new VaultKV(c.env);
   await vault.login();
-  const { privateKey: pkcs8 } = await vault.getSecret({ path: "tester" });
+  const { privateKey: pkcs8 } = await vault.get("tester");
 
   // convert -----BEGIN PRIVATE KEY----- to keylike
   const privateKey = await jose.importPKCS8(pkcs8, alg);
@@ -91,9 +91,9 @@ export const signToken = async (c: Ctx, { sub }: { sub: string }) => {
 };
 
 export const generateJwk = async (c: Ctx) => {
-  const vault = VaultKV.fromCtx(c);
+  const vault = new VaultKV(c.env);
   await vault.login();
-  const { publicKey: spki } = await vault.getSecret({ path: "tester" });
+  const { publicKey: spki } = await vault.get("tester");
 
   // convert -----BEGIN PUBLIC KEY----- to keylike
   const publicKey = await jose.importSPKI(spki, alg, { extractable: true });
