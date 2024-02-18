@@ -53,21 +53,7 @@ async function ServerComp({ path, data }: { path: string; data: any }) {
             The form below will create a signed RS256 JWT that is valid for 2
             minutes.
           </p>
-          <p>
-            The private key used for signing is stored in, and retrieved from
-            HCP Vault:{" "}
-            <a
-              class="underline text-blue-500"
-              href="https://vault.thekevinwang.com"
-            >
-              vault.thekevinwang.com
-            </a>
-            .{" "}
-            <span class="text-amber-800 bg-amber-200 rounded-lg px-2">
-              As long as this Vault instance is live, this POC will{" "}
-              <i>just work</i>.
-            </span>
-          </p>
+
           <p>
             The public key is publicly available at{" "}
             <a class="underline text-blue-500" href="/.well-known/jwks.json">
@@ -98,6 +84,13 @@ async function ServerComp({ path, data }: { path: string; data: any }) {
               name="password"
               placeholder="password (optional)"
               class="border rounded-md p-1"
+              data-1p-ignore
+            />
+            <input
+              type="hidden"
+              class="hidden"
+              name="grant_type"
+              value="password"
               data-1p-ignore
             />
 
@@ -135,6 +128,7 @@ async function ServerComp({ path, data }: { path: string; data: any }) {
 }
 
 app.get("/", (c) => {
+  console.log("UI", c.req.url, c.req.routePath);
   const cookie = getCookie(c, "__token");
   const token = cookie ? unsafeDecodeToken(cookie) : "";
 

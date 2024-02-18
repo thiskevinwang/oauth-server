@@ -1,3 +1,4 @@
+import { KVNamespacePutOptions } from "@cloudflare/workers-types";
 import type { Env } from "@/types";
 
 import { KeyValue } from "./internal";
@@ -12,7 +13,7 @@ export class CloudflareKV implements KeyValue {
     return this.kvBinding.get<T>(path, "json");
   }
 
-  async put(path: string, value: any) {
-    return this.kvBinding.put(path, JSON.stringify(value));
+  async put(path: string, value: any, extra: KVNamespacePutOptions = {}) {
+    return this.kvBinding.put(path, JSON.stringify(value), extra);
   }
 }

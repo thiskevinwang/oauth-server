@@ -1,22 +1,21 @@
 {
-  "name": "oauth-server",
+  "name": "oauth-monorepo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {},
+  "devDependencies": {},
   "scripts": {
-    "dev": "wrangler dev src/index.ts --assets ./public",
-    "tw": "tailwindcss -i ./src/ui/style.css -o ./public/style.css --watch",
-    "deploy": "tailwindcss -i ./src/ui/style.css -o ./public/style.css --minify && wrangler deploy --minify src/index.ts --assets ./public"
+    "server:dev": "pushd apps/oauth-server && bun run dev && popd",
+    "cli:dev": "pushd apps/oauth-cli && bun run dev && popd"
   },
-  "dependencies": {
-    "date-fns": "^3.3.1",
-    "hono": "^3.12.7",
-    "jose": "^5.2.0"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thiskevinwang/oauth-server.git"
   },
-  "devDependencies": {
-    "@cloudflare/workers-types": "^4.20231218.0",
-    "autoprefixer": "^10.4.17",
-    "postcss": "^8.4.33",
-    "prettier": "^3.2.4",
-    "tailwindcss": "^3.4.1",
-    "typescript": "^5.3.3",
-    "wrangler": "^3.22.0"
-  }
+  "author": "",
+  "license": "ISC",
+  "workspaces": [
+    "apps/*"
+  ]
 }

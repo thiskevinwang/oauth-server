@@ -2,18 +2,19 @@ import { MiddlewareHandler } from "hono";
 import * as jose from "jose";
 import { getCookie } from "hono/cookie";
 
-import { VaultKV } from "@/storage/vault";
+import { CloudflareKV } from "@/storage/kv";
 
 import type { Context } from "hono";
 import type { Env } from "@/types";
 
 type Ctx = Context<{ Bindings: Env }>;
 
-const alg = "RS256";
+const ALG = "RS256";
+const KEY_ID = "test key id";
+const COOKIENAME = "__token";
 
-// These values will be stored in Vault KV
-export const generateKeyPair = async () => {
-  const { privateKey, publicKey } = await jose.generateKeyPair(alg, {
+const generateKeyPair = async () => {
+  const { privateKey, publicKey } = await jose.generateKeyPair(ALG, {
     modulusLength: 2048,
     extractable: true,
   });
@@ -33,7 +34,7 @@ export const generateKeyPair = async () => {
  * @see https://github.com/panva/jose/blob/main/docs/functions/jwt_verify.jwtVerify.md
  */
 export const verifyToken: MiddlewareHandler = async (c: Ctx, next) => {
-  const token = getCookie(c, "__token");
+  const token = getCookie(c, COOKIENAME);
 
   if (!token) {
     return c.json({
@@ -42,10 +43,18 @@ export const verifyToken: MiddlewareHandler = async (c: Ctx, next) => {
     });
   }
 
-  const vault = new VaultKV(c.env);
-  await vault.login();
-  const { publicKey: spki } = await vault.get("tester");
-  const publicKey = await jose.importSPKI(spki, alg, { extractable: true });
+  const storage = new CloudflareKV(c.env);
+
+  const item = await storage.get(KEY_ID);
+  if (!item) {
+    c.status(500);
+    return c.json({
+      error: "invalid_token",
+      error_description: "No public key found",
+    });
+  }
+  const { publicKey: spki } = item;
+  const publicKey = await jose.importSPKI(spki, ALG, { extractable: true });
 
   try {
     await jose.jwtVerify(token, publicKey);
@@ -68,18 +77,21 @@ export const verifyToken: MiddlewareHandler = async (c: Ctx, next) => {
  * @see https://github.com/panva/jose/blob/main/docs/classes/jwt_sign.SignJWT.md
  */
 export const signToken = async (c: Ctx, { sub }: { sub: string }) => {
-  const vault = new VaultKV(c.env);
-  await vault.login();
-  const { privateKey: pkcs8 } = await vault.get("tester");
+  const storage = new CloudflareKV(c.env);
+  const item = await storage.get(KEY_ID);
+  if (!item) {
+    throw new Error("No private key found");
+  }
+  const { privateKey: pkcs8 } = item;
 
   // convert -----BEGIN PRIVATE KEY----- to keylike
-  const privateKey = await jose.importPKCS8(pkcs8, alg);
+  const privateKey = await jose.importPKCS8(pkcs8, ALG);
 
   const jwt = await new jose.SignJWT({ sub })
     .setProtectedHeader({
-      alg,
+      alg: ALG,
       typ: "JWT",
-      kid: "test key id",
+      kid: KEY_ID,
     })
     .setIssuedAt()
     .setIssuer(new URL(c.req.url).host)
@@ -91,18 +103,28 @@ export const signToken = async (c: Ctx, { sub }: { sub: string }) => {
 };
 
 export const generateJwk = async (c: Ctx) => {
-  const vault = new VaultKV(c.env);
-  await vault.login();
-  const { publicKey: spki } = await vault.get("tester");
+  const storage = new CloudflareKV(c.env);
+  const item =
+    (await storage.get(KEY_ID)) ||
+    // bootstrap token for dev purposes
+    (await generateKeyPair().then((item) => {
+      storage.put(KEY_ID, {
+        privateKey: item.pkcs8,
+        publicKey: item.spki,
+      });
+      return item;
+    }));
+
+  const { publicKey: spki } = item;
 
   // convert -----BEGIN PUBLIC KEY----- to keylike
-  const publicKey = await jose.importSPKI(spki, alg, { extractable: true });
+  const publicKey = await jose.importSPKI(spki, ALG, { extractable: true });
 
   const jwk = await jose.exportJWK(publicKey);
 
-  jwk.alg = alg;
+  jwk.alg = ALG;
   jwk.use = "sig";
-  jwk.kid = "test key id";
+  jwk.kid = KEY_ID;
 
   return jwk;
 };

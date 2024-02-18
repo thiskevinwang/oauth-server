@@ -1,0 +1,25 @@
+{
+  "name": "oauth-server",
+  "scripts": {
+    "dev": "wrangler dev src/index.ts --assets ./public",
+    "tw": "tailwindcss -i ./src/ui/style.css -o ./public/style.css --watch",
+    "deploy": "tailwindcss -i ./src/ui/style.css -o ./public/style.css --minify && wrangler deploy --minify src/index.ts --assets ./public"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "^0.1.11",
+    "@paulmillr/qr": "^0.1.1",
+    "date-fns": "^3.3.1",
+    "hono": "4.0.4",
+    "jose": "^5.2.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20231218.0",
+    "autoprefixer": "^10.4.17",
+    "postcss": "^8.4.33",
+    "prettier": "^3.2.4",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.3.3",
+    "wrangler": "^3.22.0"
+  }
+}
