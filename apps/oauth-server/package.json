@@ -6,20 +6,20 @@
     "deploy": "tailwindcss -i ./src/ui/style.css -o ./public/style.css --minify && wrangler deploy --minify src/index.ts --assets ./public"
   },
   "dependencies": {
-    "@hono/zod-validator": "^0.1.11",
+    "@hono/zod-validator": "^0.2.1",
     "@paulmillr/qr": "^0.1.1",
-    "date-fns": "^3.3.1",
-    "hono": "4.0.4",
-    "jose": "^5.2.0",
-    "zod": "^3.22.4"
+    "date-fns": "^3.6.0",
+    "hono": "4.3.8",
+    "jose": "^5.3.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20231218.0",
-    "autoprefixer": "^10.4.17",
-    "postcss": "^8.4.33",
-    "prettier": "^3.2.4",
-    "tailwindcss": "^3.4.1",
-    "typescript": "^5.3.3",
-    "wrangler": "^3.22.0"
+    "@cloudflare/workers-types": "^4.20240512.0",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "prettier": "^3.2.5",
+    "tailwindcss": "^3.4.3",
+    "typescript": "^5.4.5",
+    "wrangler": "^3.57.0"
   }
 }

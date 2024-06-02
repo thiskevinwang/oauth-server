@@ -7,10 +7,11 @@
     "strict": true,
     "lib": ["esnext"],
     "paths": {
-      "@/*": ["./src/*"],
+      "@/*": ["./src/*"]
     },
     "types": ["@cloudflare/workers-types"],
     "jsx": "react-jsx",
-    "jsxImportSource": "hono/jsx",
+    "jsxImportSource": "hono/jsx"
   },
+  "include": ["src/**/*", "worker-configuration.d.ts"]
 }
