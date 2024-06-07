@@ -33,7 +33,7 @@ async function main() {
   // start local server to facilitate OAuth2 Device Flow
   const loginPromise = new Promise<boolean>((resolve, reject) => {
     server = http.createServer(async (req, res) => {
-      console.log("[SERVER] Request", req.url, req.method);
+      console.log("[SERVER] Request", req.method, req.url);
       // helper to close the server and resolve/reject the promise
       function finish(status: boolean, error?: Error) {
         clearTimeout(loginTimeoutHandle);
@@ -53,55 +53,85 @@ async function main() {
       if (pathname !== "/oauth/callback") {
         return res.end("OK");
       }
-      // `isReturningFromAuthServer(query)` - mutates LocalState
-      // - authorizationCode = ?code
-      // - hasAuthCodeBeenExchangedForAccessToken = false
-      //
-      // HACK: assume oauth-server has redirected to localhost:8976 with a request like:
-      //
-      // Protocol: http
-      // Host: localhost
-      // Port: 8976
-      // Path: /oauth/callback
-      // Query Parameters:
-      //   code:  DUY_LKfwsC-adsWRosDIutCU73AzrnwwFM8ZrzWsLE0.fxJcTYn0PDWufjGiUtPlnhj_rtqMjfUIkA4awtkhWYc
-      //   scope:  account%3Aread%20user%3Aread%20workers%3Awrite%20workers_kv%3Awrite%20workers_routes%3Awrite%20workers_scripts%3Awrite%20workers_tail%3Aread%20d1%3Awrite%20pages%3Awrite%20zone%3Aread%20ssl_certs%3Awrite%20constellation%3Awrite%20ai%3Awrite%20queues%3Awrite%20offline_access
-      //   state:  bp4IFvXGb-CvW0grF8FXH5xBOQLABfD0
+
+      const {
+        // DUY_LKfwsC-adsWRosDIutCU73AzrnwwFM8ZrzWsLE0.fxJcTYn0PDWufjGiUtPlnhj_rtqMjfUIkA4awtkhWYc
+        code,
+        // account%3Aread%20user%3Aread%20workers%3Awrite%20workers_kv%3Awrite%20workers_routes%3Awrite%20workers_scripts%3Awrite%20workers_tail%3Aread%20d1%3Awrite%20pages%3Awrite%20zone%3Aread%20ssl_certs%3Awrite%20constellation%3Awrite%20ai%3Awrite%20queues%3Awrite%20offline_access
+        scope,
+        // bp4IFvXGb-CvW0grF8FXH5xBOQLABfD0
+        state,
+      } = query as Record<string, string>;
 
       // `exchangeAuthCodeForAccessToken()`
       // - reads LocalState.authorizationCode
       // - POST /oauth2/token?code=...&client_id=...&code_verifier(optional)=...&redirect_uri=...&grant_type=authorization_code
 
-      const code = query.code as string;
-      const params = new URLSearchParams({
+      const qs = new URLSearchParams({
         grant_type: "authorization_code",
         code,
         client_id: "my_test_app",
         redirect_uri: "http://localhost:8976/oauth/callback",
         code_verifier: "",
       });
-      const request = new Request("http://localhost:8787/oauth2/token", {
-        method: "POST",
-        body: params.toString(),
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
+      const tokenRequest = new Request(
+        `http://localhost:3000/oauth2/token?${qs}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+        }
+      );
+      const response = await fetch(tokenRequest);
+      if (response.status !== 200) {
+        console.error(
+          "[Server] Oauth server token endpoint responded with:",
+          response.status,
+          response.statusText
+        );
+      }
+
+      const data = await response.json();
+      console.log("[Server] Oauth server token endpoint responded with:", data);
+
+      res.writeHead(307, {
+        Location: "http://localhost:3000/consent-granted",
       });
-      const response = await fetch(request);
+      res.end(() => {
+        finish(true);
+      });
     });
 
     server.listen(serverPort, "localhost");
   });
 
   // generate URL To open
-  const res = await fetch("http://localhost:8787/oauth2/device_authorization", {
+  const res = await fetch("http://localhost:3000/oauth2/device/code", {
     method: "POST",
     body: new URLSearchParams({
       client_id: "my_test_app",
       scope: "read write",
     }),
   });
-  const data = await res.json();
+
+  // https://auth0.com/docs/get-started/authentication-and-authorization-flow/device-authorization-flow#device-flow
+  // https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-device-code#device-authorization-response
+  const data = (await res.json()) as {
+    /** A long string used to verify the session between the client and the authorization server. The client uses this parameter to request the access token from the authorization server. */
+    device_code: string;
+    /** A short string shown to the user used to identify the session on a secondary device. */
+    user_code: string;
+    /** The URI the user should go to with the user_code in order to sign in. */
+    verification_uri: string;
+    /** optional */
+    verification_uri_complete?: string;
+    /** The number of seconds before the device_code and user_code expire. */
+    expires_in: number;
+    /** A human-readable string with instructions for the user. This can be localized by including a query parameter in the request of the form ?mkt=xx-XX, filling in the appropriate language culture code. */
+    message?: string;
+  };
+
   p.note(JSON.stringify(data, null, 2));
 
   // TODO
@@ -133,47 +163,13 @@ async function main() {
     await openInBrowser(data.verification_uri);
   }
 
-  return Promise.race([timerPromise, loginPromise]);
-
-  let error = null;
-  let token = null;
-  let interval = data.interval * 1000;
-  let expires = data.expires_in * 1000;
-  let start = Date.now();
-
-  let iterations = 0;
-  do {
-    try {
-      const res = await fetch("http://localhost:8787/oauth2/token", {
-        method: "POST",
-        body: new URLSearchParams({
-          client_id: "my_test_app",
-          device_code: data.device_code,
-          grant_type: "urn:ietf:params:oauth:grant-type:device_code",
-        }),
-      });
-      const response = await res.json();
-      if (response.error == "authorization_pending") {
-        return;
-      }
-    } catch (e) {
-      error = e;
-    }
-
-    await setTimeout(interval);
-  } while (Date.now() - start < expires && token === null && error === null);
-
-  if (error) {
-    spinner.stop(`Error fetching token: ${error}`, 1);
+  const success = await Promise.race([timerPromise, loginPromise]);
+  if (!success) {
+    spinner.stop(`Timeout waiting for device to be authorized.`, 1);
     return;
   }
-  if (!token) {
-    spinner.stop(`No token received`, 1);
-    return;
-  }
-  spinner.stop(`Token received: ${JSON.stringify(token)}`, 0);
 
-  p.outro("Done.");
+  spinner.stop(`Device authorized.`, 0);
 }
 
 main();

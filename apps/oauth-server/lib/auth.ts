@@ -38,13 +38,6 @@ export const verifyToken = async (request: NextRequest) => {
   }
   const token = cookie.value;
 
-  if (!token) {
-    throw {
-      error: "invalid_token",
-      error_description: "Missing access token",
-    };
-  }
-
   // Verify a signed token.
 
   // 1. use the public key directly

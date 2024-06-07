@@ -1,4 +1,6 @@
-"use client";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+
 // ex. http://localhost:3000/login?login_challenge=123
 export default function LoginPage({
   // params,
@@ -10,21 +12,31 @@ export default function LoginPage({
   const loginChallenge = searchParams.login_challenge;
 
   async function action(formData: FormData) {
+    "use server";
     // @ts-ignore
     const qs = new URLSearchParams(formData); // 'username=asda&password=asdasd&grant_type=password'
-    const res = await fetch(`/oauth2/token?${qs}`, {
-      method: "POST",
-      headers: {
-        // Spec says to use application/x-www-form-urlencoded... But like, why?
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      redirect: "follow",
+
+    // how can we know the origin of the Oauth server?
+    const res = await fetch(
+      new URL(`/oauth2/token?${qs}`, "http://localhost:3000"),
+      {
+        method: "POST",
+        headers: {
+          // Spec says to use application/x-www-form-urlencoded... But like, why?
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        redirect: "follow",
+      }
+    );
+    const json = await res.json<{ access_token: string }>();
+
+    cookies().set("__token", json.access_token, {
+      sameSite: true,
+      secure: true,
     });
-    // not part of spec. Just redirect to smoke test cookie setting & parsing
-    console.log(res.status);
-    if (res.redirected) {
-      window.location.href = res.url;
-    }
+
+    // for testing convenience, redirect to /oauth/consent-form
+    redirect("/oauth/consent-form");
   }
 
   return (

@@ -7,18 +7,14 @@ import { verifyToken } from "@/lib/auth";
 
 // This function can be marked `async` if using `await` inside
 export async function middleware(request: NextRequest) {
-  console.log("middleware");
-  try {
-    await verifyToken(request);
-  } catch (e: any) {
-    if ("error" in e) {
-      console.log("error", e);
-      return NextResponse.redirect(
-        new URL("/", request.url).toString() +
-          "?error=" +
-          encodeURIComponent(e.error)
-      );
-    }
+  const e = await verifyToken(request);
+  if ("error" in e) {
+    console.log("error", e);
+    return NextResponse.redirect(
+      new URL("/login", request.url).toString() +
+        "?error=" +
+        encodeURIComponent(e.error)
+    );
   }
   return NextResponse.next();
 }
@@ -29,5 +25,6 @@ export const config = {
   matcher: [
     // Match any path
     "/oauth2/userInfo",
+    "/oauth/consent-form",
   ],
 };

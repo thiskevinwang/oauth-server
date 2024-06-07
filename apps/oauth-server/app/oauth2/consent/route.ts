@@ -35,17 +35,15 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  // In the edge runtime you can use Bindings that are available in your application
-  // (for more details see:
-  //    - https://developers.cloudflare.com/pages/framework-guides/deploy-a-nextjs-site/#use-bindings-in-your-nextjs-application
-  //    - https://developers.cloudflare.com/pages/functions/bindings/
-  // )
-  //
-  // KV Example:
-  // const myKv = getRequestContext().env.MY_KV_NAMESPACE
-  // await myKv.put('suffix', ' from a KV store!')
-  // const suffix = await myKv.get('suffix')
-  // responseText += suffix
+  console.log("POST /oauth2/consent", request.nextUrl.toString());
+  // TODO verify OTP?
+  const searchParams = request.nextUrl.searchParams;
+  const otp = searchParams.get("otp");
+  console.log("POST /oauth2/consent otp=", otp);
 
-  return NextResponse.json({ message: POST.name });
+  return NextResponse.json({
+    code: "random_code",
+    scope: "read write",
+    state: "random_state",
+  } satisfies { code: string; scope: string; state: string });
 }
