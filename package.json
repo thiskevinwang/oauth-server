@@ -7,7 +7,7 @@
   "devDependencies": {},
   "scripts": {
     "server:dev": "pushd apps/oauth-server && bun run dev && popd",
-    "cli:dev": "pushd apps/oauth-cli && bun run dev && popd"
+    "cli:dev": "pushd apps/cli && bun run dev && popd"
   },
   "repository": {
     "type": "git",

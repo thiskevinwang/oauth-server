@@ -1,0 +1,28 @@
+#!/bin/bash
+url=$1
+
+# Check if URL is provided
+if [ -z "$url" ]; then
+  echo "Usage: $0 <url>"
+  exit 1
+fi
+
+# Parse URL
+protocol=$(echo "$url" | awk -F '://' '{print $1}')
+host_port=$(echo "$url" | awk -F '://' '{print $2}' | awk -F '/' '{print $1}')
+host=$(echo "$host_port" | awk -F ':' '{print $1}')
+port=$(echo "$host_port" | awk -F ':' '{print $2}')
+path=$(echo "$url" | awk -F '://' '{print $2}' | awk -F '?' '{print $1}' | awk -F '/' '{for (i=2; i<NF; i++) printf "/%s", $i; print "/"$NF}')
+query=$(echo "$url" | awk -F '?' '{print $2}')
+
+# Pretty print parts
+echo "Protocol: $protocol"
+echo "Host: $host"
+echo "Port: $port"
+echo "Path: $path"
+echo "Query Parameters:"
+echo "$query" | tr '&' '\n' | sed 's/=/:\ /g' | while read -r line; do
+  key=$(echo "$line" | awk -F ':' '{print $1}')
+  value=$(echo "$line" | awk -F ':' '{print $2}')
+  echo "  $key: $value"
+done
