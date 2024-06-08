@@ -7,14 +7,17 @@ import { verifyToken } from "@/lib/auth";
 
 // This function can be marked `async` if using `await` inside
 export async function middleware(request: NextRequest) {
-  const e = await verifyToken(request);
-  if ("error" in e) {
-    console.log("error", e);
-    return NextResponse.redirect(
-      new URL("/login", request.url).toString() +
-        "?error=" +
-        encodeURIComponent(e.error)
-    );
+  const originalUrl = request.nextUrl.toString();
+  try {
+    await verifyToken(request);
+  } catch (e: any) {
+    if ("error" in e) {
+      console.log("middleware error", e);
+
+      const loggedOut = new URL("/sign-in", request.url);
+      loggedOut.searchParams.set("redirect", originalUrl);
+      return NextResponse.redirect(loggedOut.toString());
+    }
   }
   return NextResponse.next();
 }

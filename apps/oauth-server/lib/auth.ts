@@ -1,8 +1,15 @@
 import * as jose from "jose";
 
 import { createRemoteJWKSet } from "jose";
-import { getRequestContext } from "@cloudflare/next-on-pages";
 import { NextRequest, NextResponse } from "next/server";
+
+import { getRequestContext } from "@cloudflare/next-on-pages";
+import { drizzle } from "drizzle-orm/d1";
+import { eq } from "drizzle-orm";
+import * as schema from "@/db/schema";
+
+const d1 = getRequestContext().env.DB;
+const db = drizzle(d1, { schema });
 
 const ALG = "RS256";
 const KEY_ID = "test key id";
@@ -40,19 +47,30 @@ export const verifyToken = async (request: NextRequest) => {
 
   // Verify a signed token.
 
-  // 1. use the public key directly
-  // const storage = (getRequestContext().env as Env).DATASTORE;
-  // const item = await storage.get<{ publicKey: string }>(KEY_ID, "json");
-  // if (!item) {
-  //   throw {
-  //     error: "invalid_token",
-  //     error_description: "No public key found",
-  //   };
-  // }
-  // const { publicKey: spki } = item;
-  // const publicKey = await jose.importSPKI(spki, ALG, { extractable: true });
+  // 1. retrieve the public key directly from storage
+  //   let [item] = await db
+  //     .select()
+  //     .from(schema.keyPairs)
+  //     .where(eq(schema.keyPairs.id, 1))
+  //     .execute();
+  //   if (!item) {
+  //     const bootstrap = await UNSAFE_bootstrapKeyPair();
+  //     const [inserted] = await db
+  //       .insert(schema.keyPairs)
+  //       .values({
+  //         privateKey: bootstrap.pkcs8,
+  //         publicKey: bootstrap.spki,
+  //       })
+  //       .returning()
+  //       .execute();
+  //     item = inserted;
+  //   }
+  //   const publicKey = await jose.importSPKI(item.publicKey, ALG, {
+  //     extractable: true,
+  //   });
+  //  return  await jose.jwtVerify(token, publicKey);
 
-  // 2. use the JWKs endpoint
+  // 2. use a JWKs endpoint (see generateJwk below)
   const getKey = createRemoteJWKSet(
     new URL("/.well-known/jwks.json", request.url)
   );
@@ -77,10 +95,26 @@ export const verifyToken = async (request: NextRequest) => {
  */
 export const signToken = async (
   request: NextRequest,
-  { sub }: { sub: string }
+  { sub, username }: { sub: string; username: string }
 ) => {
-  const storage = (getRequestContext().env as Env).DATASTORE;
-  const item = await storage.get<{ privateKey: string }>(KEY_ID, "json");
+  let [item] = await db
+    .select()
+    .from(schema.keyPairs)
+    .where(eq(schema.keyPairs.id, 1))
+    .execute();
+  if (!item) {
+    const bootstrap = await UNSAFE_bootstrapKeyPair();
+    const [inserted] = await db
+      .insert(schema.keyPairs)
+      .values({
+        privateKey: bootstrap.pkcs8,
+        publicKey: bootstrap.spki,
+      })
+      .returning()
+      .execute();
+    item = inserted;
+  }
+
   if (!item) {
     throw new Error("No private key found");
   }
@@ -89,7 +123,7 @@ export const signToken = async (
   // convert -----BEGIN PRIVATE KEY----- to keylike
   const privateKey = await jose.importPKCS8(pkcs8, ALG);
 
-  const jwt = await new jose.SignJWT({ sub })
+  const jwt = await new jose.SignJWT({ sub, username })
     .setProtectedHeader({
       alg: ALG,
       typ: "JWT",
@@ -105,19 +139,22 @@ export const signToken = async (
 };
 
 export const generateJwk = async (request: NextRequest) => {
-  const storage = (getRequestContext().env as Env).DATASTORE;
-  let item = await storage.get<{ privateKey: string; publicKey: string }>(
-    KEY_ID,
-    "json"
-  );
-
-  if (item === null) {
+  let [item] = await db
+    .select()
+    .from(schema.keyPairs)
+    .where(eq(schema.keyPairs.id, 1))
+    .execute();
+  if (!item) {
     const bootsrap = await UNSAFE_bootstrapKeyPair();
-    item = {
-      privateKey: bootsrap.pkcs8,
-      publicKey: bootsrap.spki,
-    };
-    await storage.put(KEY_ID, JSON.stringify(item));
+    const [inserted] = await db
+      .insert(schema.keyPairs)
+      .values({
+        privateKey: bootsrap.pkcs8,
+        publicKey: bootsrap.spki,
+      })
+      .returning()
+      .execute();
+    item = inserted;
   }
 
   const { publicKey: spki } = item;

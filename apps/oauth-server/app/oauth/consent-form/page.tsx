@@ -6,6 +6,14 @@ import { z } from "zod";
 
 import useSWR from "swr";
 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -39,37 +47,37 @@ export default function ConsentForm({
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
   const consentChallenge = searchParams.consent_challenge;
+  const userCode = searchParams.user_code;
 
   // GET /oauth2/auth
-  const { data, error } = useSWR(
-    consentChallenge
-      ? `/oauth2/auth?consent_challenge=${consentChallenge}`
-      : null,
-    async (url) => {
-      const response = await fetch(url);
-      return response.json();
-    }
-  );
+  // const { data, error } = useSWR(
+  //   consentChallenge
+  //     ? `/oauth2/auth?consent_challenge=${consentChallenge}`
+  //     : null,
+  //   async (url) => {
+  //     const response = await fetch(url);
+  //     return response.json();
+  //   }
+  // );
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      pin: "",
+      pin: userCode as string,
     },
   });
 
   async function onSubmit(data: z.infer<typeof FormSchema>) {
     toast("You submitted the following values:", {
-      description: (
-        <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-          <code className="text-white">{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      ),
+      description: JSON.stringify(data, null, 2),
     });
     const qs = new URLSearchParams({ otp: data.pin });
-    const res = await fetch(`/oauth2/consent?${qs}`, {
+    const res = await fetch(`/oauth2/consent`, {
       method: "POST",
-      // body: JSON.stringify({ otp: data.pin }),
+      body: qs,
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
     });
     const json = await res.json<{
       code: string;
@@ -88,41 +96,58 @@ export default function ConsentForm({
   }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="w-2/3 space-y-6">
-        <FormField
-          control={form.control}
-          name="pin"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>User Code</FormLabel>
-              <FormControl>
-                <InputOTP
-                  maxLength={6}
-                  {...field}
-                  data-1p-ignore=""
-                  pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
-                >
-                  <InputOTPGroup>
-                    <InputOTPSlot index={0} />
-                    <InputOTPSlot index={1} />
-                    <InputOTPSlot index={2} />
-                    <InputOTPSlot index={3} />
-                    <InputOTPSlot index={4} />
-                    <InputOTPSlot index={5} />
-                  </InputOTPGroup>
-                </InputOTP>
-              </FormControl>
-              <FormDescription>
-                Please enter the temporary code you were prompted with.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+    <div>
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle className="text-xl">Sign Up</CardTitle>
+          <CardDescription>
+            Enter your information to create an account
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="w-2/3 space-y-6"
+            >
+              <FormField
+                control={form.control}
+                name="pin"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>User Code</FormLabel>
+                    <FormControl>
+                      <InputOTP
+                        maxLength={6}
+                        {...field}
+                        data-1p-ignore=""
+                        pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
+                      >
+                        <InputOTPGroup>
+                          <InputOTPSlot index={0} />
+                          <InputOTPSlot index={1} />
+                          <InputOTPSlot index={2} />
+                          <InputOTPSlot index={3} />
+                          <InputOTPSlot index={4} />
+                          <InputOTPSlot index={5} />
+                        </InputOTPGroup>
+                      </InputOTP>
+                    </FormControl>
+                    <FormDescription>
+                      Please enter the temporary code you were prompted with.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-        <Button type="submit">Submit</Button>
-      </form>
-    </Form>
+              <Button type="submit" className="w-full">
+                Submit
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

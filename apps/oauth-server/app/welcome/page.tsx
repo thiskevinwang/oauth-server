@@ -7,7 +7,7 @@ import { unsafeDecodeToken } from "@/lib/auth";
 
 export const runtime = "edge";
 
-export default function ConsentGranted() {
+export default function WelcomePage() {
   const jwt = cookies().get("__token");
 
   const decoded = jwt?.value ? unsafeDecodeToken(jwt.value) : null;
@@ -45,7 +45,7 @@ export function WelcomeCard({
     <Card className="w-full max-w-sm">
       <CardHeader>
         <CardTitle className="text-xl">Welcome</CardTitle>
-        <CardDescription>You have granted consent</CardDescription>
+        <CardDescription>This is you</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid gap-4">

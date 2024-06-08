@@ -19,7 +19,8 @@
     ],
     "paths": {
       "@/*": ["./*"]
-    }
+    },
+    "types": ["@cloudflare/next-on-pages"]
   },
   // also include folders like .well-known/jwks.json
   "include": [
@@ -27,7 +28,8 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "app/.well-known/jwks.json/route.ts"
+    "app/.well-known/jwks.json/route.ts",
+    "prettier.config.js"
   ],
   "exclude": ["node_modules"]
 }

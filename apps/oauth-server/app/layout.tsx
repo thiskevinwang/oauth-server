@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { headers } from "next/headers";
 import "./globals.css";
+import { PathBreadcrumbs } from "@/components/path-breadcrumbs";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -15,10 +17,18 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const h = headers();
   return (
     <html lang="en">
       <body className={inter.className}>
-        <main className="mx-4">{children}</main>
+        <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14">
+          <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+            <PathBreadcrumbs />
+          </header>
+          <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+            {children}
+          </main>
+        </div>
         <Toaster />
       </body>
     </html>

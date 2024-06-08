@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1717880324044,
+      "tag": "0000_violet_paper_doll",
+      "breakpoints": true
+    }
+  ]
+}

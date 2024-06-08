@@ -35,11 +35,11 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  console.log("POST /oauth2/consent", request.nextUrl.toString());
-  // TODO verify OTP?
-  const searchParams = request.nextUrl.searchParams;
-  const otp = searchParams.get("otp");
-  console.log("POST /oauth2/consent otp=", otp);
+  console.log("POST /oauth2/consent");
+
+  const formData = await request.formData();
+  const otp = formData.get("otp") as string;
+  console.log("  >>> otp:", otp);
 
   return NextResponse.json({
     code: "random_code",
