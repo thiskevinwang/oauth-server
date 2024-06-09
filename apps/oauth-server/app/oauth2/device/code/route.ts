@@ -7,30 +7,30 @@
 // https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-device-code
 // POST /{tenant}/oauth2/v2.0/devicecode
 
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
-import { getRequestContext } from "@cloudflare/next-on-pages";
-import { drizzle } from "drizzle-orm/d1";
-import { eq, and } from "drizzle-orm";
 import * as schema from "@/db/schema";
+import { getRequestContext } from "@cloudflare/next-on-pages";
+import { and, eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/d1";
 const d1 = getRequestContext().env.DB;
 const db = drizzle(d1, { schema });
 
 export const runtime = "edge";
 
 interface DeviceCodeResponseBody {
-  /** A long string used to verify the session between the client and the authorization server. The client uses this parameter to request the access token from the authorization server. */
-  device_code: string;
-  /** A short string shown to the user used to identify the session on a secondary device. */
-  user_code: string;
-  /** The URI the user should go to with the user_code in order to sign in. */
-  verification_uri: string;
-  /** optional */
-  verification_uri_complete?: string | null;
-  /** The number of seconds before the device_code and user_code expire. */
-  expires_in: number;
-  /** A human-readable string with instructions for the user. This can be localized by including a query parameter in the request of the form ?mkt=xx-XX, filling in the appropriate language culture code. */
-  message?: string;
+	/** A long string used to verify the session between the client and the authorization server. The client uses this parameter to request the access token from the authorization server. */
+	device_code: string;
+	/** A short string shown to the user used to identify the session on a secondary device. */
+	user_code: string;
+	/** The URI the user should go to with the user_code in order to sign in. */
+	verification_uri: string;
+	/** optional */
+	verification_uri_complete?: string | null;
+	/** The number of seconds before the device_code and user_code expire. */
+	expires_in: number;
+	/** A human-readable string with instructions for the user. This can be localized by including a query parameter in the request of the form ?mkt=xx-XX, filling in the appropriate language culture code. */
+	message?: string;
 }
 
 // {
@@ -49,81 +49,81 @@ interface DeviceCodeResponseBody {
 // interval: The minimum amount of time in seconds that the device should wait between polling requests.
 
 function randomString(length: number) {
-  return crypto
-    .getRandomValues(new Uint8Array(length))
-    .reduce(
-      (acc, val) => acc + "abcdefghijklmnopqrstuvwxyz0123456789"[val % 36],
-      ""
-    );
+	return crypto
+		.getRandomValues(new Uint8Array(length))
+		.reduce(
+			(acc, val) => acc + "abcdefghijklmnopqrstuvwxyz0123456789"[val % 36],
+			""
+		);
 }
 
 export async function POST(request: NextRequest) {
-  console.log("POST /oauth2/device/code");
-  // <<< incoming request
-  //     content type: "application/x-www-form-urlencoded"
-  const body = await request.formData();
-  const client_id = body.get("client_id") as string;
+	console.log("POST /oauth2/device/code");
+	// <<< incoming request
+	//     content type: "application/x-www-form-urlencoded"
+	const body = await request.formData();
+	const client_id = body.get("client_id") as string;
 
-  console.log("client_id", client_id);
+	console.log("client_id", client_id);
 
-  // <<< validate request
-  if (!client_id) {
-    return NextResponse.json(
-      { error: "invalid_request", error_description: "client_id is required" },
-      { status: 400 }
-    );
-  }
+	// <<< validate request
+	if (!client_id) {
+		return NextResponse.json(
+			{ error: "invalid_request", error_description: "client_id is required" },
+			{ status: 400 }
+		);
+	}
 
-  // >>> BOOTSTRAP database with client
-  if (client_id === "local_2hbrqu5MwiG5fjEk0HGfMG4KpEh") {
-    const [client] = await db
-      .insert(schema.clients)
-      .values({
-        clientId: client_id,
-        name: "Local Client",
-      })
-      .returning()
-      .onConflictDoNothing()
-      .execute();
-  }
+	// >>> BOOTSTRAP database with client
+	if (client_id === "local_2hbrqu5MwiG5fjEk0HGfMG4KpEh") {
+		const [client] = await db
+			.insert(schema.clients)
+			.values({
+				clientId: client_id,
+				name: "Local Client"
+			})
+			.returning()
+			.onConflictDoNothing()
+			.execute();
+	}
 
-  // if (!client) {
-  //   return NextResponse.json(
-  //     { error: "invalid_client", error_description: "client_id is invalid" },
-  //     { status: 400 }
-  //   );
-  // }
+	// if (!client) {
+	//   return NextResponse.json(
+	//     { error: "invalid_client", error_description: "client_id is invalid" },
+	//     { status: 400 }
+	//   );
+	// }
 
-  // >>> to database
-  //     device_code, user_code, verification_uri, client_id
-  const deviceCode = randomString(22);
-  const userCode = randomString(6);
-  const verificationUri = new URL("/oauth/consent-form", request.url);
-  const verificationUriComplete = new URL(verificationUri);
-  verificationUriComplete.searchParams.set("user_code", userCode);
-  const expiresIn = 3600;
+	// >>> to database
+	//     device_code, user_code, verification_uri, client_id
+	const deviceCode = randomString(22);
+	const userCode = randomString(6);
+	const verificationUri = new URL("/oauth/consent-form", request.url);
+	const verificationUriComplete = new URL(verificationUri);
+	verificationUriComplete.searchParams.set("user_code", userCode);
+	const expiresIn = 3600;
 
-  const [result] = await db
-    .insert(schema.devices)
-    .values({
-      clientId: client_id,
-      deviceCode,
-      userCode,
-      verificationUri: verificationUri.toString(),
-      verificationUriComplete: verificationUriComplete.toString(),
-      expiresIn,
-    })
-    .returning()
-    .execute();
+	const [result] = await db
+		.insert(schema.devices)
+		.values({
+			clientId: client_id,
+			deviceCode,
+			userCode,
+			verificationUri: verificationUri.toString(),
+			verificationUriComplete: verificationUriComplete.toString(),
+			expiresIn
+		})
+		.returning()
+		.execute();
 
-  // >>> outgoing response
-  return NextResponse.json({
-    device_code: result.deviceCode,
-    user_code: result.userCode,
-    verification_uri: result.verificationUri,
-    verification_uri_complete: result.verificationUriComplete,
-    expires_in: result.expiresIn,
-  } satisfies DeviceCodeResponseBody);
+	// >>> outgoing response
+	return NextResponse.json({
+		device_code: result.deviceCode,
+		user_code: result.userCode,
+		verification_uri: result.verificationUri,
+		verification_uri_complete: result.verificationUriComplete,
+		expires_in: result.expiresIn
+	} satisfies DeviceCodeResponseBody);
 }
 
 // note: npx wrangler login

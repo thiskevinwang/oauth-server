@@ -1,89 +1,32 @@
 import { cookies } from "next/headers";
-import { redirect, RedirectType } from "next/navigation";
-
-import { cn } from "@/lib/utils";
-
 import { unsafeDecodeToken } from "@/lib/auth";
+import { formatRelative } from "date-fns";
+
+import JsonView from "@/components/json-view";
 
 export const runtime = "edge";
 
-export default function ConsentGranted() {
+export default function Page() {
   const jwt = cookies().get("__token");
 
-  const decoded = jwt?.value ? unsafeDecodeToken(jwt.value) : null;
+  const decoded = jwt?.value ? unsafeDecodeToken(jwt.value) : {};
   return (
-    <div className={cn("mx-auto flex justify-center")}>
-      <WelcomeCard
-        username={decoded?.payload.username}
-        id={decoded?.payload.sub}
-      />
+    <div>
+      <JsonView value={decoded}></JsonView>
+      <p>Current time: {formatRelative(new Date(), new Date())}</p>
+
+      {decoded?.payload ? (
+        <>
+          <p>
+            Token issued:{" "}
+            {formatRelative(decoded?.payload.iat * 1000, new Date())}
+          </p>
+          <p>
+            Token expires:{" "}
+            {formatRelative(decoded?.payload.exp * 1000, new Date())}
+          </p>
+        </>
+      ) : null}
     </div>
-  );
-}
-
-import Link from "next/link";
-
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-
-export function WelcomeCard({
-  username,
-  id,
-}: {
-  username: string;
-  id: string;
-}) {
-  return (
-    <Card className="w-full max-w-sm">
-      <CardHeader>
-        <CardTitle className="text-xl">Welcome</CardTitle>
-        <CardDescription>You have granted consent</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="grid gap-4">
-          {/* <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="first-name">First name</Label>
-              <Input id="first-name" placeholder="Max" required />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="last-name">Last name</Label>
-              <Input id="last-name" placeholder="Robinson" required />
-            </div>
-          </div> */}
-          <div className="grid gap-2">
-            <Label htmlFor="username">Username</Label>
-            <Input
-              name="username"
-              id="username"
-              value={username}
-              readOnly
-              disabled
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="id">ID</Label>
-            <Input name="id" id="id" type="id" value={id} readOnly disabled />
-          </div>
-          {/* <Button type="submit" className="w-full">
-            Create an account
-          </Button> */}
-        </div>
-        {/* <div className="mt-4 text-center text-sm">
-          Already have an account?{" "}
-          <Link href="/sign-in" className="underline">
-            Sign in
-          </Link>
-        </div> */}
-      </CardContent>
-    </Card>
   );
 }

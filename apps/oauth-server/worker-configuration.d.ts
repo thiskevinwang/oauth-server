@@ -2,12 +2,13 @@
 // by running `wrangler types`
 
 interface Env {
-  DB: D1Database;
+	DB: D1Database;
 }
 
 import "@cloudflare/next-on-pages";
 declare global {
-  interface CloudflareEnv {ce;
-    DB: D1Database;
-  }
+	interface CloudflareEnv {
+		ce;
+		DB: D1Database;
+	}
 }

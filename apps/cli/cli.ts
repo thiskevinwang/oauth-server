@@ -1,28 +1,15 @@
-import http from "node:http";
-import { setTimeout as sleep } from "node:timers/promises";
+import * as http from "node:http";
 import { setTimeout } from "node:timers";
-import url from "node:url";
+import { setTimeout as sleep } from "node:timers/promises";
+import * as url from "node:url";
 
-import open from "open";
 import * as p from "@clack/prompts";
 import encodeQR from "@paulmillr/qr";
+import open from "open";
 
 // fixed client_id
 // This is how the OAuth2 server identifies the client
 const CLIENT_ID = "local_2hbrqu5MwiG5fjEk0HGfMG4KpEh";
-
-class POST extends Request {
-  constructor(input: RequestInfo, init?: RequestInit) {
-    super(input, {
-      ...init,
-      method: "POST",
-      headers: {
-        ...init?.headers,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
-  }
-}
 
 // See workers-sdk
 // https://github.com/cloudflare/workers-sdk/blob/65902d5453f5e499d08bf29723f7ce96e0c8a96a/packages/wrangler/src/user/user.ts#L946
@@ -33,7 +20,7 @@ async function main() {
   await sleep(1000);
 
   let server: http.Server;
-  let serverPort = 8976;
+  const serverPort = 8976;
   let loginTimeoutHandle: NodeJS.Timeout;
 
   const timerPromise = new Promise<boolean>((resolve) => {
@@ -45,17 +32,18 @@ async function main() {
   });
 
   // start local server to facilitate OAuth2 Device Flow
-  const loginPromise = new Promise<boolean>((resolve, reject) => {
+  //
+  // This will watch for browser redirects to localhost:8976/oauth/callback
+  const loginPromise = new Promise<any>((resolve, reject) => {
     server = http.createServer(async (req, res) => {
-      console.log("[SERVER] Request", req.method, req.url);
       // helper to close the server and resolve/reject the promise
-      function finish(status: boolean, error?: Error) {
+      function finish(result: any, error?: Error) {
         clearTimeout(loginTimeoutHandle);
         server.close((closeErr?: Error) => {
           if (error || closeErr) {
             reject(error || closeErr);
           } else {
-            resolve(status);
+            resolve(result);
           }
         });
       }
@@ -103,8 +91,9 @@ async function main() {
         Location: "http://localhost:3000/consent-granted",
       });
       res.end(() => {
-        finish(true);
+        finish(data);
       });
+      // finish(data);
     });
 
     server.listen(serverPort, "localhost");
@@ -136,12 +125,14 @@ async function main() {
 
   p.note(JSON.stringify(deviceCodeResponseBody, null, 2));
 
+  const urlToVisit =
+    deviceCodeResponseBody.verification_uri_complete ||
+    deviceCodeResponseBody.verification_uri;
+
   p.log.step(
-    `Scan this QR code with your phone, or visit ${deviceCodeResponseBody.verification_uri} to sign in.`
+    `Scan this QR code with your phone, or visit ${urlToVisit} to sign in.`
   );
-  p.log.message(
-    encodeQR(deviceCodeResponseBody.verification_uri, "ascii", { scale: 1 })
-  );
+  p.log.message(encodeQR(urlToVisit, "ascii", { scale: 1 }));
   p.log.message(
     `And enter this code when prompted: ${deviceCodeResponseBody.user_code.toUpperCase()}`
   );
@@ -149,20 +140,22 @@ async function main() {
   const spinner = p.spinner();
   spinner.start(`Waiting for device to be authorized...`);
 
+  // detect ctrl+c
+  process.on("SIGINT", () => {
+    spinner.stop(`Ctrl+C detected. Exiting...`);
+    clearTimeout(loginTimeoutHandle);
+    server.close();
+  });
+
   const shouldOpenBrowser = await p.confirm({
     message: "Do you want to open the URL in your browser?",
     active: "YES",
     inactive: "no",
     initialValue: true,
   });
-  if (p.isCancel(shouldOpenBrowser)) {
-    return;
-  }
+
   if (shouldOpenBrowser) {
-    await openInBrowser(
-      deviceCodeResponseBody.verification_uri_complete ||
-        deviceCodeResponseBody.verification_uri
-    );
+    await openInBrowser(urlToVisit);
   }
 
   const success = await Promise.race([timerPromise, loginPromise]);
@@ -197,3 +190,16 @@ type DeviceCodeResponseBody = {
   /** A human-readable string with instructions for the user. This can be localized by including a query parameter in the request of the form ?mkt=xx-XX, filling in the appropriate language culture code. */
   message?: string;
 };
+
+class POST extends Request {
+  constructor(input: RequestInfo, init?: RequestInit) {
+    super(input, {
+      ...init,
+      method: "POST",
+      headers: {
+        ...init?.headers,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    });
+  }
+}

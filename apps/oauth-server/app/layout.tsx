@@ -1,9 +1,11 @@
+import { Toaster } from "@/components/ui/sonner";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { Toaster } from "@/components/ui/sonner";
 import { headers } from "next/headers";
 import "./globals.css";
 import { PathBreadcrumbs } from "@/components/path-breadcrumbs";
+import { SignOutButton } from "@/components/sign-out-button";
+import { SignInButton } from "@/components/sign-in-button";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -24,6 +26,10 @@ export default function RootLayout({
         <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14">
           <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
             <PathBreadcrumbs />
+            <div className="ml-auto">
+              <SignInButton />
+              <SignOutButton />
+            </div>
           </header>
           <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
             {children}
