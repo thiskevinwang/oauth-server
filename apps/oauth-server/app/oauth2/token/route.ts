@@ -11,153 +11,159 @@ import { drizzle } from "drizzle-orm/d1";
 const d1 = getRequestContext().env.DB;
 const db = drizzle(d1, { schema });
 
-/**
- * Resource Owner Password Credentials Grant
- * https://datatracker.ietf.org/doc/html/rfc6749#section-4.3.1
- */
-const AccessTokenRequest_PasswordCredentialsGrant = z.object({
-	grant_type: z.literal("password"),
-	username: z.string(),
-	password: z.string(),
-	scope: z.string().nullable().optional()
-});
-type AccessTokenRequest_PasswordCredentialsGrant = z.infer<
-	typeof AccessTokenRequest_PasswordCredentialsGrant
->;
-
-/**
- * https://datatracker.ietf.org/doc/html/rfc6749#section-4.3.3
- */
-const AccessTokenResponse_PasswordCredentialsGrant = z.object({
-	access_token: z.string(),
-	token_type: z.string(),
-	expires_in: z.number(),
-	refresh_token: z.string()
-	// example_parameter: z.string(),
-});
-type AccessTokenResponse_PasswordCredentialsGrant = z.infer<
-	typeof AccessTokenResponse_PasswordCredentialsGrant
->;
-
-/**
- * https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.3
- */
-const AccessTokenRequest_AuthorizationCodeGrant = z.object({
-	grant_type: z.literal("authorization_code"),
-	code: z.string(),
-	redirect_uri: z.string(),
-	client_id: z.string()
-});
-type AccessTokenRequest_AuthorizationCodeGrant = z.infer<
-	typeof AccessTokenRequest_AuthorizationCodeGrant
->;
-
-/**
- * https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.4
- */
-const AccessTokenResponse_AuthorizationCodeGrant = z.object({
-	access_token: z.string(),
-	token_type: z.string(),
-	expires_in: z.number(),
-	refresh_token: z.string()
-	// example_parameter: z.string(),
-});
-type AccessTokenResponse_AuthorizationCodeGrant = z.infer<
-	typeof AccessTokenResponse_AuthorizationCodeGrant
->;
-
-/**
- * https://datatracker.ietf.org/doc/html/rfc8628#section-3.4
- */
-const AccessTokenRequest_DeviceCodeGrant = z.object({
-	grant_type: z.literal("urn:ietf:params:oauth:grant-type:device_code"),
-	device_code: z.string(),
-	client_id: z.string()
-});
-type AccessTokenRequest_DeviceCodeGrant = z.infer<
-	typeof AccessTokenRequest_DeviceCodeGrant
->;
-
 export const runtime = "edge";
 
-// https://datatracker.ietf.org/doc/html/rfc6749#section-2.3.1
-// POST /token HTTP/1.1
-// Host: server.example.com
-// Content-Type: application/x-www-form-urlencoded
-//
-// grant_type=refresh_token&refresh_token=tGzv3JOkF0XG5Qx2TlKWIA
-// &client_id=s6BhdRkqt3&client_secret=7Fjfp0ZBr1KtDRbnfVdmIw
+/**
+ * [Token Endpoint](https://datatracker.ietf.org/doc/html/rfc6749#section-3.2)
+ *
+ * [PKCE extention](https://datatracker.ietf.org/doc/html/rfc7636#section-4.5)
+ */
 export async function POST(request: NextRequest) {
 	console.log("POST /oauth2/token");
 
 	const formData = await request.formData();
-	const grantType = formData.get("grant_type") as string;
-	const payload = Object.fromEntries(formData.entries());
-	console.log(payload);
+	const data = Object.fromEntries(formData.entries());
 
-	if (!grantType) {
-		return NextResponse.json(
-			{ error: "invalid_request", error_description: "Missing grant_type" },
-			{ status: 400 }
-		);
-	}
-
-	if (grantType === "password") {
-		const payload = AccessTokenRequest_PasswordCredentialsGrant.parse({
-			grant_type: formData.get("grant_type"),
-			username: formData.get("username"),
-			password: formData.get("password"),
-			scope: formData.get("scope")
-		});
-
-		const { username, password } = payload;
-
-		const [user] = await db
-			.select()
-			.from(schema.users)
-			.where(
-				and(
-					eq(schema.users.username, username),
-					eq(schema.users.password, password)
-				)
-			)
-			.execute();
-
-		const tok = await signToken(request, {
-			sub: user.id,
-			username: user.username
-		});
-		// cookies().set("__token", tok, { sameSite: true, secure: true });
-
-		return NextResponse.json({
-			access_token: tok,
-			token_type: "Bearer",
-			expires_in: 120, // 2m is hardcoded in signToken
-			refresh_token: "refresh"
-		} satisfies AccessTokenResponse_PasswordCredentialsGrant);
-	}
-
-	// https://datatracker.ietf.org/doc/html/rfc6749#section-4.1
-	if (grantType === "authorization_code") {
-		const payload = AccessTokenRequest_AuthorizationCodeGrant.parse({
-			grant_type: formData.get("grant_type"),
-			code: formData.get("code"),
-			redirect_uri: formData.get("redirect_uri"),
-			client_id: formData.get("client_id")
-		});
-
-		// TODO: Validate the authorization code
-		// https://auth0.com/docs/get-started/authentication-and-authorization-flow/authorization-code-flow
-
-		const tok = await signToken(request, { sub: payload.client_id });
-
-		// TODO: persist the token in the database
-
-		return NextResponse.json({
-			access_token: tok,
-			expires_in: 120, // 2m is hardcoded in signToken
-			refresh_token: "test",
-			token_type: "example"
-		} satisfies AccessTokenResponse_AuthorizationCodeGrant);
+	const params = TokenRequest.parse(data);
+	switch (params.grant_type) {
+		case "authorization_code": {
+			const { code, redirect_uri, client_id, code_verifier } = params;
+			await handleAuthorizationCodeGrant(params);
+			break;
+		}
+		case "password": {
+			const result = await handlePasswordGrant(params, request);
+			return NextResponse.json(result);
+		}
+		case "refresh_token": {
+			const { refresh_token } = params;
+			await handleRefreshTokenGrant(params);
+			break;
+		}
+		case "urn:ietf:params:oauth:grant-type:device_code": {
+			const { device_code, client_id } = params;
+			await handleDeviceCodeGrant(params);
+			break;
+		}
 	}
 }
+
+const BaseTokenRequest = z.object({
+	grant_type: z.enum([
+		"password",
+		"authorization_code",
+		"refresh_token",
+		"client_credentials",
+		"urn:ietf:params:oauth:grant-type:device_code"
+	])
+});
+
+export const PasswordTokenRequest = BaseTokenRequest.extend({
+	grant_type: z.literal("password"),
+	username: z.string(),
+	password: z.string(),
+	scope: z.string().optional()
+});
+export type PasswordTokenRequest = z.infer<typeof PasswordTokenRequest>;
+
+/**
+ * @see [Proof Key for Code Exchange by OAuth Public Clients - Section 4.3](https://datatracker.ietf.org/doc/html/rfc7636#section-4.3) for extentions
+ */
+export const AuthorizationCodeTokenRequest = BaseTokenRequest.extend({
+	grant_type: z.literal("authorization_code"),
+	code: z.string(),
+	redirect_uri: z.string(),
+	client_id: z.string()
+}).extend({
+	code_verifier: z.string().optional()
+});
+export type AuthorizationCodeTokenRequest = z.infer<typeof AuthorizationCodeTokenRequest>;
+
+/**
+ * https://datatracker.ietf.org/doc/html/rfc6749#section-4.4
+ */
+export const ClientCredentialsTokenRequest = BaseTokenRequest.extend({
+	grant_type: z.literal("client_credentials"),
+	scope: z.string().optional()
+});
+export type ClientCredentialsTokenRequest = z.infer<typeof ClientCredentialsTokenRequest>;
+
+/**
+ * https://datatracker.ietf.org/doc/html/rfc6749#section-6
+ */
+export const RefreshTokenRequest = BaseTokenRequest.extend({
+	grant_type: z.literal("refresh_token"),
+	refresh_token: z.string()
+});
+export type RefreshTokenRequest = z.infer<typeof RefreshTokenRequest>;
+
+/**
+ * https://datatracker.ietf.org/doc/html/rfc8628#section-3.4
+ */
+export const DeviceCodeTokenRequest = BaseTokenRequest.extend({
+	grant_type: z.literal("urn:ietf:params:oauth:grant-type:device_code"),
+	device_code: z.string(),
+	client_id: z.string()
+});
+export type DeviceCodeTokenRequest = z.infer<typeof DeviceCodeTokenRequest>;
+
+/** a convenience discriminated union type for {@link BaseTokenRequest} */
+export const TokenRequest = z.discriminatedUnion("grant_type", [
+	PasswordTokenRequest,
+	ClientCredentialsTokenRequest,
+	AuthorizationCodeTokenRequest,
+	RefreshTokenRequest,
+	DeviceCodeTokenRequest
+]);
+export type TokenRequest = z.infer<typeof TokenRequest>;
+
+export const BaseTokenResponse = z.object({
+	access_token: z.string(),
+	expires_in: z.number(), // seconds
+	token_type: z.string()
+});
+
+/**
+ * The response to {@link PasswordTokenRequest}
+ *
+ * @see https://datatracker.ietf.org/doc/html/rfc6749#section-4.3.3
+ */
+export const ResourceOwnerTokenResponse = BaseTokenResponse.extend({
+	refresh_token: z.string().optional()
+});
+export type ResourceOwnerTokenResponse = z.infer<typeof ResourceOwnerTokenResponse>;
+
+async function handlePasswordGrant(input: PasswordTokenRequest, request: NextRequest) {
+	const { username, password } = input;
+
+	const [user] = await db
+		.select()
+		.from(schema.users)
+		.where(and(eq(schema.users.username, username), eq(schema.users.password, password)))
+		.execute();
+	if (!user) {
+		throw new Error("Invalid username or password");
+	}
+
+	const accessToken = await signToken({
+		issuer: new URL(request.url).host,
+		audience: new URL(request.url).host,
+		sub: user.id,
+		username: user.username,
+		expirationTime: "15m"
+	});
+
+	const response = {
+		access_token: accessToken,
+		expires_in: 15 * 60,
+		token_type: "Bearer"
+	} satisfies ResourceOwnerTokenResponse;
+
+	return response;
+}
+
+async function handleAuthorizationCodeGrant(input: AuthorizationCodeTokenRequest) {}
+
+async function handleRefreshTokenGrant(input: RefreshTokenRequest) {}
+
+async function handleDeviceCodeGrant(input: DeviceCodeTokenRequest) {}

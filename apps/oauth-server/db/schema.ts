@@ -16,12 +16,8 @@ export const users = sqliteTable("users", {
 	id: integer("id").primaryKey({ autoIncrement: true }),
 	username: text("username").notNull().unique(),
 	password: text("password").notNull(),
-	createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" })
-		.notNull()
-		.default(sql`(unixepoch() * 1000)`),
-	updatedAtMs: integer("updated_at_ms", { mode: "timestamp_ms" })
-		.notNull()
-		.default(sql`(unixepoch() * 1000)`)
+	createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }).notNull().default(sql`(unixepoch() * 1000)`),
+	updatedAtMs: integer("updated_at_ms", { mode: "timestamp_ms" }).notNull().default(sql`(unixepoch() * 1000)`)
 });
 
 export const clients = sqliteTable("clients", {
@@ -30,12 +26,8 @@ export const clients = sqliteTable("clients", {
 	clientSecret: text("client_secret"),
 	redirectUri: text("redirect_uri"),
 	name: text("name"),
-	createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" })
-		.notNull()
-		.default(sql`(unixepoch() * 1000)`),
-	updatedAtMs: integer("updated_at_ms", { mode: "timestamp_ms" })
-		.notNull()
-		.default(sql`(unixepoch() * 1000)`)
+	createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }).notNull().default(sql`(unixepoch() * 1000)`),
+	updatedAtMs: integer("updated_at_ms", { mode: "timestamp_ms" }).notNull().default(sql`(unixepoch() * 1000)`)
 });
 
 // POST /oauth2/device/code
@@ -58,12 +50,8 @@ export const devices = sqliteTable("devices", {
 	expiresIn: integer("expires_in").notNull(),
 	interval: integer("interval"),
 	status: text("status").notNull().default(sql`'pending'`), // pending, approved, denied
-	createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" })
-		.notNull()
-		.default(sql`(unixepoch() * 1000)`),
-	updatedAtMs: integer("updated_at_ms", { mode: "timestamp_ms" })
-		.notNull()
-		.default(sql`(unixepoch() * 1000)`)
+	createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }).notNull().default(sql`(unixepoch() * 1000)`),
+	updatedAtMs: integer("updated_at_ms", { mode: "timestamp_ms" }).notNull().default(sql`(unixepoch() * 1000)`)
 });
 
 export const tokens = sqliteTable("tokens", {
@@ -77,10 +65,21 @@ export const tokens = sqliteTable("tokens", {
 	accessToken: text("access_token").notNull().unique(),
 	refreshToken: text("refresh_token").notNull().unique(),
 	expiresAtMs: integer("expires_at_ms").notNull(),
-	createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" })
+	createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }).notNull().default(sql`(unixepoch() * 1000)`),
+	updatedAtMs: integer("updated_at_ms", { mode: "timestamp_ms" }).notNull().default(sql`(unixepoch() * 1000)`)
+});
+
+export const authorizationCodes = sqliteTable("authorization_codes", {
+	code: text("code").primaryKey(),
+	clientId: text("client_id")
 		.notNull()
-		.default(sql`(unixepoch() * 1000)`),
-	updatedAtMs: integer("updated_at_ms", { mode: "timestamp_ms" })
+		.references(() => clients.clientId),
+	userId: text("user_id")
 		.notNull()
-		.default(sql`(unixepoch() * 1000)`)
+		.references(() => users.id),
+	codeChallenge: text("code_challenge").notNull(),
+	codeChallengeMethod: text("code_challenge_method").notNull(),
+	scopes: text("scopes"),
+	expiresAtMs: integer("expires_at_ms").notNull(),
+	createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }).notNull().default(sql`(unixepoch() * 1000)`)
 });

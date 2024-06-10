@@ -9,7 +9,12 @@ import { verifyToken } from "@/lib/auth";
 export async function middleware(request: NextRequest) {
 	const originalUrl = request.nextUrl.toString();
 	try {
-		await verifyToken(request);
+		const e = await verifyToken(request);
+		if ("error" in e) {
+			const loggedOut = new URL("/sign-in", request.url);
+			loggedOut.searchParams.set("redirect", originalUrl);
+			return NextResponse.redirect(loggedOut.toString());
+		}
 	} catch (e: any) {
 		if ("error" in e) {
 			console.log("middleware error", e);
@@ -27,6 +32,8 @@ export async function middleware(request: NextRequest) {
 export const config = {
 	matcher: [
 		// Match any path
+		"/oauth2/auth",
+		"/oauth2/consent",
 		"/oauth2/userInfo",
 		"/oauth/consent-form"
 	]

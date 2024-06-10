@@ -51,10 +51,7 @@ interface DeviceCodeResponseBody {
 function randomString(length: number) {
 	return crypto
 		.getRandomValues(new Uint8Array(length))
-		.reduce(
-			(acc, val) => acc + "abcdefghijklmnopqrstuvwxyz0123456789"[val % 36],
-			""
-		);
+		.reduce((acc, val) => acc + "abcdefghijklmnopqrstuvwxyz0123456789"[val % 36], "");
 }
 
 export async function POST(request: NextRequest) {
@@ -68,10 +65,7 @@ export async function POST(request: NextRequest) {
 
 	// <<< validate request
 	if (!client_id) {
-		return NextResponse.json(
-			{ error: "invalid_request", error_description: "client_id is required" },
-			{ status: 400 }
-		);
+		return NextResponse.json({ error: "invalid_request", error_description: "client_id is required" }, { status: 400 });
 	}
 
 	// >>> BOOTSTRAP database with client

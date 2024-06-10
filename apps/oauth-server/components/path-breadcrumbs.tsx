@@ -21,7 +21,8 @@ const pathLookup = {
 	"/consent-granted": "Consent Granted",
 	"/consent-form": "Consent Form",
 	"/oauth2": "OAuth2",
-	"/oauth": "OAuth"
+	"/oauth": "OAuth",
+	"/error": "Error"
 };
 
 function splitPath(path: string) {
@@ -63,9 +64,7 @@ export function PathBreadcrumbs() {
 						<Fragment key={index}>
 							<BreadcrumbItem>
 								<BreadcrumbLink asChild>
-									<Link href={`${parts.slice(0, index + 1).join()}`}>
-										{pathLookup[part] || part}
-									</Link>
+									<Link href={`${parts.slice(0, index + 1).join()}`}>{pathLookup[part] || part}</Link>
 								</BreadcrumbLink>
 							</BreadcrumbItem>
 							<BreadcrumbSeparator />

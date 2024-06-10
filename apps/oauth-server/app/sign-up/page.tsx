@@ -39,6 +39,7 @@ export default function SignUpPage({
 					username,
 					password
 				})
+				.returning()
 				.execute();
 		} catch (e: any) {
 			console.error(e);
@@ -75,22 +76,14 @@ export default function SignUpPage({
 		<div>
 			<form action={action}>
 				<SignUpForm />
-				<input
-					type="hidden"
-					className="hidden"
-					name="grant_type"
-					value="password"
-					data-1p-ignore
-				/>
+				<input type="hidden" className="hidden" name="grant_type" value="password" data-1p-ignore />
 			</form>
 
 			{error && (
 				<Alert className="mt-4 w-full max-w-sm" variant="destructive">
 					<AlertTitle>Error</AlertTitle>
 					<AlertDescription>
-						{error === "invalid-credentials"
-							? "Invalid username or password."
-							: "An unknown error occurred."}
+						{error === "invalid-credentials" ? "Invalid username or password." : "An unknown error occurred."}
 					</AlertDescription>
 				</Alert>
 			)}
@@ -101,13 +94,7 @@ export default function SignUpPage({
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -116,9 +103,7 @@ export function SignUpForm() {
 		<Card className="w-full max-w-sm">
 			<CardHeader>
 				<CardTitle className="text-xl">Sign Up</CardTitle>
-				<CardDescription>
-					Enter your information to create an account
-				</CardDescription>
+				<CardDescription>Enter your information to create an account</CardDescription>
 			</CardHeader>
 			<CardContent>
 				<div className="grid gap-4">
@@ -134,12 +119,7 @@ export function SignUpForm() {
           </div> */}
 					<div className="grid gap-2">
 						<Label htmlFor="username">Username</Label>
-						<Input
-							name="username"
-							id="username"
-							placeholder="m@example.com"
-							required
-						/>
+						<Input name="username" id="username" placeholder="m@example.com" required />
 					</div>
 					<div className="grid gap-2">
 						<Label htmlFor="password">Password</Label>

@@ -5,7 +5,7 @@ import { type NextRequest, NextResponse } from "next/server";
 
 import * as schema from "@/db/schema";
 import { getRequestContext } from "@cloudflare/next-on-pages";
-import { eq } from "drizzle-orm";
+import { eq, is } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 
 const d1 = getRequestContext().env.DB;
@@ -35,7 +35,9 @@ export const UNSAFE_bootstrapKeyPair = async () => {
  *
  * @see https://github.com/panva/jose/blob/main/docs/functions/jwt_verify.jwtVerify.md
  */
-export const verifyToken = async (request: NextRequest) => {
+export const verifyToken = async (
+	request: NextRequest
+): Promise<jose.JWTVerifyResult<jose.JWTPayload> & jose.ResolvedKey<jose.KeyLike>> => {
 	const cookie = request.cookies.get(COOKIENAME);
 	if (!cookie) {
 		throw {
@@ -71,9 +73,7 @@ export const verifyToken = async (request: NextRequest) => {
 	//  return  await jose.jwtVerify(token, publicKey);
 
 	// 2. use a JWKs endpoint (see generateJwk below)
-	const getKey = createRemoteJWKSet(
-		new URL("/.well-known/jwks.json", request.url)
-	);
+	const getKey = createRemoteJWKSet(new URL("/.well-known/jwks.json", request.url));
 
 	try {
 		return await jose.jwtVerify(token, getKey);
@@ -93,15 +93,31 @@ export const verifyToken = async (request: NextRequest) => {
  *
  * @see https://github.com/panva/jose/blob/main/docs/classes/jwt_sign.SignJWT.md
  */
-export const signToken = async (
-	request: NextRequest,
-	{ sub, username }: { sub: string; username: string }
-) => {
-	let [item] = await db
-		.select()
-		.from(schema.keyPairs)
-		.where(eq(schema.keyPairs.id, 1))
-		.execute();
+export const signToken = async ({
+	sub,
+	username,
+	issuer,
+	audience,
+	expirationTime = "10m"
+}: {
+	sub: string;
+	username: string;
+	issuer: string;
+	audience: string;
+	/**
+	 * Valid units are:
+	 * - "sec", "secs", "second", "seconds", "s",
+	 * - "minute", "minutes", "min", "mins", "m",
+	 * - "hour", "hours", "hr", "hrs", "h",
+	 * - "day", "days", "d",
+	 * - "week", "weeks", "w",
+	 * - "year", "years", "yr", "yrs", and "y".
+	 *
+	 * It is not possible to specify months. 365.25 days is used as an alias for a year.
+	 */
+	expirationTime: `${number}${"sec" | "secs" | "second" | "seconds" | "s" | "minute" | "minutes" | "min" | "mins" | "m" | "hour" | "hours" | "hr" | "hrs" | "h" | "day" | "days" | "d" | "week" | "weeks" | "w" | "year" | "years" | "yr" | "yrs" | "y"}`;
+}) => {
+	let [item] = await db.select().from(schema.keyPairs).where(eq(schema.keyPairs.id, 1)).execute();
 	if (!item) {
 		const bootstrap = await UNSAFE_bootstrapKeyPair();
 		const [inserted] = await db
@@ -130,20 +146,16 @@ export const signToken = async (
 			kid: KEY_ID
 		})
 		.setIssuedAt()
-		.setIssuer(new URL(request.url).host)
-		.setAudience(new URL(request.url).host)
-		.setExpirationTime("2m")
+		.setIssuer(issuer)
+		.setAudience(audience)
+		.setExpirationTime(expirationTime)
 		.sign(privateKey);
 
 	return jwt;
 };
 
 export const generateJwk = async (request: NextRequest) => {
-	let [item] = await db
-		.select()
-		.from(schema.keyPairs)
-		.where(eq(schema.keyPairs.id, 1))
-		.execute();
+	let [item] = await db.select().from(schema.keyPairs).where(eq(schema.keyPairs.id, 1)).execute();
 	if (!item) {
 		const bootsrap = await UNSAFE_bootstrapKeyPair();
 		const [inserted] = await db

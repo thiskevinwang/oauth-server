@@ -34,12 +34,7 @@ export default async function SignInPage({
 		const [user] = await db
 			.select()
 			.from(schema.users)
-			.where(
-				and(
-					eq(schema.users.username, username),
-					eq(schema.users.password, password)
-				)
-			)
+			.where(and(eq(schema.users.username, username), eq(schema.users.password, password)))
 			.execute();
 
 		if (!user) {
@@ -84,22 +79,14 @@ export default async function SignInPage({
 			{/* <p>Challenge: {loginChallenge}</p> */}
 			<form action={action}>
 				<SignInForm />
-				<input
-					type="hidden"
-					className="hidden"
-					name="grant_type"
-					value="password"
-					data-1p-ignore
-				/>
+				<input type="hidden" className="hidden" name="grant_type" value="password" data-1p-ignore />
 			</form>
 
 			{error && (
 				<Alert className="mt-4 w-full max-w-sm" variant="destructive">
 					<AlertTitle>Error</AlertTitle>
 					<AlertDescription>
-						{error === "invalid-credentials"
-							? "Invalid username or password."
-							: "An unknown error occurred."}
+						{error === "invalid-credentials" ? "Invalid username or password." : "An unknown error occurred."}
 					</AlertDescription>
 				</Alert>
 			)}
@@ -110,13 +97,7 @@ export default async function SignInPage({
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -125,32 +106,17 @@ export function SignInForm() {
 		<Card className="w-full max-w-sm">
 			<CardHeader>
 				<CardTitle className="text-xl">Sign in</CardTitle>
-				<CardDescription>
-					Enter your email below to sign in to your account.
-				</CardDescription>
+				<CardDescription>Enter your email below to sign in to your account.</CardDescription>
 			</CardHeader>
 			<CardContent>
 				<div className="grid gap-4">
 					<div className="grid gap-2">
 						<Label htmlFor="username">Username</Label>
-						<Input
-							name="username"
-							id="username"
-							type="username"
-							placeholder="m@example.com"
-							required
-							data-1p-ignore
-						/>
+						<Input name="username" id="username" type="username" placeholder="m@example.com" required data-1p-ignore />
 					</div>
 					<div className="grid gap-2">
 						<Label htmlFor="password">Password</Label>
-						<Input
-							name="password"
-							id="password"
-							type="password"
-							required
-							data-1p-ignore
-						/>
+						<Input name="password" id="password" type="password" required data-1p-ignore />
 					</div>
 					<Button type="submit" className="w-full">
 						Sign in

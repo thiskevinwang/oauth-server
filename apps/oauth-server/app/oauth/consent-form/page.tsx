@@ -6,30 +6,11 @@ import { z } from "zod";
 
 import useSWR from "swr";
 
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { Button } from "@/components/ui/button";
-import {
-	Form,
-	FormControl,
-	FormDescription,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage
-} from "@/components/ui/form";
-import {
-	InputOTP,
-	InputOTPGroup,
-	InputOTPSeparator,
-	InputOTPSlot
-} from "@/components/ui/input-otp";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@/components/ui/input-otp";
 import { toast } from "sonner";
 
 const FormSchema = z.object({
@@ -48,6 +29,12 @@ export default function ConsentForm({
 }) {
 	const consentChallenge = searchParams.consent_challenge;
 	const userCode = searchParams.user_code;
+
+	// The challenge is used to fetch information about the consent request from the Oauth Server
+	// This is a protected endpoint that requires the user to be authenticated
+	// ex. https://github.com/jonfk/hydra-auth-example-rs/blob/3e6eeb641d898b2e7c74b1b1f706b01b8ba5b989/auth/src/lib.rs#L193C17-L223
+
+	// <user> must have access to <consent>
 
 	// GET /oauth2/auth
 	// const { data, error } = useSWR(
@@ -99,30 +86,20 @@ export default function ConsentForm({
 		<div>
 			<Card className="w-full max-w-sm">
 				<CardHeader>
-					<CardTitle className="text-xl">Sign Up</CardTitle>
-					<CardDescription>
-						Enter your information to create an account
-					</CardDescription>
+					<CardTitle className="text-xl">Consent</CardTitle>
+					<CardDescription>Allow CLIENT_ID/CLIENT_NAME to make changes to your account?</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<Form {...form}>
-						<form
-							onSubmit={form.handleSubmit(onSubmit)}
-							className="w-2/3 space-y-6"
-						>
+						<form onSubmit={form.handleSubmit(onSubmit)} className="w-2/3 space-y-6">
 							<FormField
 								control={form.control}
 								name="pin"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>User Code</FormLabel>
+										<FormLabel>Code</FormLabel>
 										<FormControl>
-											<InputOTP
-												maxLength={6}
-												{...field}
-												data-1p-ignore=""
-												pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
-											>
+											<InputOTP maxLength={6} {...field} data-1p-ignore="" pattern={REGEXP_ONLY_DIGITS_AND_CHARS}>
 												<InputOTPGroup>
 													<InputOTPSlot index={0} />
 													<InputOTPSlot index={1} />
@@ -133,9 +110,7 @@ export default function ConsentForm({
 												</InputOTPGroup>
 											</InputOTP>
 										</FormControl>
-										<FormDescription>
-											Please enter the temporary code you were prompted with.
-										</FormDescription>
+										<FormDescription>Please enter the temporary code you were prompted with.</FormDescription>
 										<FormMessage />
 									</FormItem>
 								)}
