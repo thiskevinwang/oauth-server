@@ -4,14 +4,16 @@
 	"description": "",
 	"main": "index.js",
 	"scripts": {
-		"dev": "bun run cli.ts"
+		"dev": "tsx cli.ts"
 	},
 	"author": "",
 	"license": "ISC",
 	"dependencies": {
-		"@clack/core": "^0.3.3",
+		"@clack/core": "^0.3.4",
 		"@clack/prompts": "^0.7.0",
+		"@hono/node-server": "^1.11.2",
 		"@paulmillr/qr": "^0.1.1",
+		"hono": "^4.4.4",
 		"open": "^10.1.0"
 	},
 	"devDependencies": {
