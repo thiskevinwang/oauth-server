@@ -1,5 +1,18 @@
+CREATE TABLE `authorization_codes` (
+	`code` text PRIMARY KEY NOT NULL,
+	`client_id` text NOT NULL,
+	`user_id` text NOT NULL,
+	`code_challenge` text NOT NULL,
+	`code_challenge_method` text NOT NULL,
+	`scopes` text,
+	`expires_at_ms` integer NOT NULL,
+	`created_at_ms` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	FOREIGN KEY (`client_id`) REFERENCES `clients`(`client_id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
 CREATE TABLE `clients` (
-	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`id` text PRIMARY KEY NOT NULL,
 	`client_id` text NOT NULL,
 	`client_secret` text,
 	`redirect_uri` text,
@@ -9,7 +22,7 @@ CREATE TABLE `clients` (
 );
 --> statement-breakpoint
 CREATE TABLE `devices` (
-	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`id` text PRIMARY KEY NOT NULL,
 	`client_id` text NOT NULL,
 	`device_code` text NOT NULL,
 	`user_code` text NOT NULL,
@@ -24,13 +37,13 @@ CREATE TABLE `devices` (
 );
 --> statement-breakpoint
 CREATE TABLE `key_pairs` (
-	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`id` text PRIMARY KEY NOT NULL,
 	`private_key` text NOT NULL,
 	`public_key` text NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE `tokens` (
-	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`id` text PRIMARY KEY NOT NULL,
 	`client_id` text NOT NULL,
 	`user_id` text NOT NULL,
 	`access_token` text NOT NULL,
@@ -43,7 +56,7 @@ CREATE TABLE `tokens` (
 );
 --> statement-breakpoint
 CREATE TABLE `users` (
-	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`id` text PRIMARY KEY NOT NULL,
 	`username` text NOT NULL,
 	`password` text NOT NULL,
 	`created_at_ms` integer DEFAULT (unixepoch() * 1000) NOT NULL,

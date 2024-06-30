@@ -1,19 +1,14 @@
 import { sql } from "drizzle-orm";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
-// NOTE: I'd like to use KSUIDs for ids, but the
-// KSUID library's crypto import is not resolvable
-// by next:
-// > Can't resolve 'crypto'
-
 export const keyPairs = sqliteTable("key_pairs", {
-	id: integer("id").primaryKey({ autoIncrement: true }),
+	id: text("id").primaryKey(),
 	privateKey: text("private_key").notNull(),
 	publicKey: text("public_key").notNull()
 });
 
 export const users = sqliteTable("users", {
-	id: integer("id").primaryKey({ autoIncrement: true }),
+	id: text("id").primaryKey(),
 	username: text("username").notNull().unique(),
 	password: text("password").notNull(),
 	createdAtMs: integer("created_at_ms", { mode: "timestamp_ms" }).notNull().default(sql`(unixepoch() * 1000)`),
@@ -21,7 +16,7 @@ export const users = sqliteTable("users", {
 });
 
 export const clients = sqliteTable("clients", {
-	id: integer("id").primaryKey({ autoIncrement: true }),
+	id: text("id").primaryKey(),
 	clientId: text("client_id").notNull().unique(),
 	clientSecret: text("client_secret"),
 	redirectUri: text("redirect_uri"),
@@ -34,7 +29,7 @@ export const clients = sqliteTable("clients", {
 // ex. https://accounts.google.com/.well-known/openid-configuration
 
 export const devices = sqliteTable("devices", {
-	id: integer("id").primaryKey({ autoIncrement: true }),
+	id: text("id").primaryKey(),
 	clientId: text("client_id")
 		.notNull()
 		.references(() => clients.clientId),
@@ -55,7 +50,7 @@ export const devices = sqliteTable("devices", {
 });
 
 export const tokens = sqliteTable("tokens", {
-	id: integer("id").primaryKey({ autoIncrement: true }),
+	id: text("id").primaryKey(),
 	clientId: text("client_id")
 		.notNull()
 		.references(() => clients.clientId),
