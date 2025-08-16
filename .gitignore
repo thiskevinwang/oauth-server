@@ -1,13 +1,3 @@
-node_modules
-dist
-.wrangler
-.dev.vars
-public/*
-
-# Change them to your taste:
-wrangler.toml
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
-
-.next
+node_modules/
+dist/
+.env

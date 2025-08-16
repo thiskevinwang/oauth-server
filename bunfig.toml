@@ -1,0 +1,3 @@
+transpiler = "swc"
+[test]
+preload = ["./tests/setup.ts"]
